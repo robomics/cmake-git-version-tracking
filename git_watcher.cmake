@@ -81,7 +81,7 @@ endmacro()
 
 CHECK_REQUIRED_VARIABLE(PRE_CONFIGURE_FILE)
 CHECK_REQUIRED_VARIABLE(POST_CONFIGURE_FILE)
-CHECK_OPTIONAL_VARIABLE(GIT_STATE_FILE "${CMAKE_CURRENT_BINARY_DIR}/git-state-hash")
+CHECK_OPTIONAL_VARIABLE(GIT_STATE_FILE "${CMAKE_BINARY_DIR}/git-state-hash")
 CHECK_OPTIONAL_VARIABLE(GIT_WORKING_DIR "${CMAKE_SOURCE_DIR}")
 CHECK_OPTIONAL_VARIABLE_NOPATH(GIT_FAIL_IF_NONZERO_EXIT TRUE)
 CHECK_OPTIONAL_VARIABLE_NOPATH(GIT_IGNORE_UNTRACKED FALSE)
@@ -108,6 +108,7 @@ set(_state_variable_names
     # >>>
     # 1. Add the name of the additional git variable you're interested in monitoring
     #    to this list.
+    GIT_TAG
 )
 
 
@@ -230,7 +231,7 @@ function(GetGitState _working_dir)
     else()
         set(ENV{GIT_DESCRIBE} "${output}")
     endif()
-    
+
     # Convert HEAD to a symbolic ref. This can fail, in which case we just
     # set that variable to HEAD.
     set(_permit_git_failure ON)
@@ -247,6 +248,14 @@ function(GetGitState _working_dir)
     #    "execute_process()" command. Be sure to set them in
     #    the environment using the same variable name you added
     #    to the "_state_variable_names" list.
+
+    # Read the most recent version-like tag pointing at HEAD
+    RunGitCommand(for-each-ref refs/tags/v*.*.* --count 1 --sort=-v:refname --format "%(refname:short)"  --points-at ${object})
+    if(NOT exit_code EQUAL 0)
+        set(ENV{GIT_TAG} "unknown")
+    else()
+        set(ENV{GIT_TAG} "${output}")
+    endif()
 
 endfunction()
 
